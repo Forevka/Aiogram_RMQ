@@ -1,5 +1,4 @@
 import logging
-import json
 
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram import Bot, Dispatcher, executor, types
@@ -7,15 +6,8 @@ from aiogram.contrib.middlewares.logging import LoggingMiddleware
 from aiogram.utils.callback_data import CallbackData
 from aiogram.utils.exceptions import MessageNotModified
 
-import pika
-from MyBot import MyBot
-
-connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
-channel = connection.channel()
-
-channel.queue_declare(queue='hello')
-
-API_TOKEN = '631844699:AAEVFt1lUrpQGaDiDZ7NpbunNRWezY8nXn0'
+from MyBot import create_bot
+import config
 
 vote_cb = CallbackData('vote', 'action')  # vote:<action>
 likes = {}  # user_id: amount_of_likes
@@ -25,7 +17,7 @@ logging.basicConfig(level=logging.INFO)
 
 # Initialize bot and dispatcher
 
-bot = MyBot(channel, token=API_TOKEN)
+bot = create_bot(config.rmq_channel, config.rmq_connection_string, token=config.bot_token)
 dp = Dispatcher(bot)
 
 def get_keyboard():

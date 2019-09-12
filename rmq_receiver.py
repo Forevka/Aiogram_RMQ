@@ -1,34 +1,41 @@
-#!/usr/bin/env python
-import pika
 import json
 import asyncio
+import aio_pika
 
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.utils.payload import generate_payload, prepare_arg, prepare_attachment, prepare_file
 
 from MyBot import BotWorker
+import config
 
-API_TOKEN = '631844699:AAEVFt1lUrpQGaDiDZ7NpbunNRWezY8nXn0'
+async def main(loop, bot_token, connection_string, rmq_channel):
+    connection = await aio_pika.connect_robust(
+        connection_string, loop=loop
+    )
 
-connection = pika.BlockingConnection(
-    pika.ConnectionParameters(host='localhost'))
-channel = connection.channel()
+    bot = BotWorker(token=bot_token)
 
-channel.queue_declare(queue='hello')
+    async with connection:
+        # Creating channel
+        channel = await connection.channel()
 
-# Initialize bot
-bot = BotWorker(token=API_TOKEN)
+        # Declaring queue
+        queue = await channel.declare_queue(
+            rmq_channel, auto_delete=False
+        )
 
-def callback(ch, method, properties, body):
-    print(bot)
-    print(" [x] Received %r" % body)
+        async with queue.iterator() as queue_iter:
+            async for message in queue_iter:
+                async with message.process():
+                    print(" [x] Received %r" % message.body)
+
+                    await bot.send_custom_request(message.body)
+
+if __name__ == "__main__":
+    print(' [*] Waiting for messages. To exit press CTRL+C')
+
     loop = asyncio.get_event_loop()
-    loop.run_until_complete(bot.send_custom_request(body))
-
-
-channel.basic_consume(
-    queue='hello', on_message_callback=callback, auto_ack=True)
-
-print(' [*] Waiting for messages. To exit press CTRL+C')
-
-channel.start_consuming()
+    loop.run_until_complete(main(loop, config.bot_token,
+                                    config.rmq_connection_string,
+                                    config.rmq_channel))
+    loop.close()
