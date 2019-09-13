@@ -13,7 +13,7 @@ async def main(loop, bot_token, connection_string, rmq_channel):
         connection_string, loop=loop
     )
 
-    bot = BotWorker(token=bot_token)
+    bot = Bot(token=bot_token)
 
     async with connection:
         # Creating channel
@@ -29,7 +29,10 @@ async def main(loop, bot_token, connection_string, rmq_channel):
                 async with message.process():
                     print(" [x] Received %r" % message.body)
 
-                    await bot.send_custom_request(message.body)
+                    body = json.loads(message.body)
+                    await bot.request(body['method'], 
+                                        data = body.get('data'), 
+                                        files = body.get('files'))
 
 if __name__ == "__main__":
     print(' [*] Waiting for messages. To exit press CTRL+C')
