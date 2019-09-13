@@ -25,14 +25,15 @@ def convert_to_dict(key, obj):
     return obj_dict
 
 class MyBot(Bot):
-    def __init__(self, rmq_channel, connection_string, **kwargs):
+    def __init__(self, routing_key, connection_string, **kwargs):
         self.token = kwargs['token']
         self.connection_string = connection_string
         self.connection = None
         self.rmq_channel = None
-        self.rmq_channel_name = rmq_channel
+        self.routing_key = routing_key
 
         self.important_methods = ['getMe', 'getUpdates', 'getWebhookInfo']
+        self.returning_list = ['sendMediaGroup', 'getChatAdministrators']
 
         super().__init__(**kwargs)
         logger.debug('Initialized bot for ', self.token)
@@ -49,20 +50,18 @@ class MyBot(Bot):
                                     proxy=self.proxy, proxy_auth=self.proxy_auth, timeout=self.timeout, **kwargs)
         else:
             if files:
-                print(files)
                 files = [convert_to_dict(key, item) for key, item in files.items()]
-            body = {
-              'method': method,
-              'data': data,
-              'files': files
-            }
-            logger.debug(body)
+
             await self.rmq_channel.default_exchange.publish(
                     aio_pika.Message(
-                        body = json.dumps(body).encode('utf-8')
+                        body = json.dumps({
+                          'method': method,
+                          'data': data,
+                          'files': files
+                        }).encode('utf-8')
                     ),
-                    routing_key=self.rmq_channel_name
+                    routing_key=self.routing_key
                 )
-            if method == "sendMediaGroup":
+            if method in self.returning_list:
                 return [{"ok":True,"result":{}}]
-            return {"ok":True,"result":{"url":"https://forevka.serveo.net:443/webhookbot_1","has_custom_certificate": False,"pending_update_count":0,"last_error_date":1565774252,"last_error_message":"Wrong response from the webhook: 502 Bad Gateway","max_connections":40}}
+            return {"ok":True,"result":{}}

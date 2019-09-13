@@ -39,7 +39,7 @@ async def main(loop, bot_token, connection_string, rmq_channel, my_id):
                     files = body.get('files')
                     if files:
                         files = {file["attach"]: types.InputFile(file["file_name"]) for file in files}
-                    logger.debug(files)
+
                     await bot.request(body['method'],
                                         data = body.get('data'),
                                         files = files)
