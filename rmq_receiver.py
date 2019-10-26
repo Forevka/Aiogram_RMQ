@@ -10,23 +10,6 @@ import config
 from multiprocessing import Pool, Process
 
 from loguru import logger
-class WorkerPull():
-    def __init__(self):
-        self.wp =  self.stack_worker()
-
-
-
-    def stack_worker(self):
-        WORKER_NUMBER = 0
-        workers = 5
-        l = {}
-        for i in range(0, workers, 1):
-            WORKER_NUMBER += 1
-            p = Process(target=start_consumer, args = (i,))
-            p.start()
-            l[i]=p
-            print("worker {} - READY".format(i+1))
-        return l
 
 
 async def main(loop, bot_token, connection_string, rmq_channel, my_id):
@@ -72,7 +55,10 @@ def start_consumer(id):
                                     id))
     loop.close()
 
-
-
 if __name__ == "__main__":
-    wp = WorkerPull()
+    WORKER_NUMBER = 0
+    workers = 5
+    for i in range(0, workers, 1):
+        WORKER_NUMBER += 1
+        p = Process(target=start_consumer, args = (i,))
+        p.start()
